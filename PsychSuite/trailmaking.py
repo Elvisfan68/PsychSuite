@@ -15,7 +15,7 @@ from pause_menu import show_pause_menu, request_suite_abort
 from timing_quality import FrameTimingMonitor, timing_row_fields, timing_run_fields
 from randomization import derive_seed
 from metrics_writer import write_derived_metrics
-from display_compat import macos_window_compat_kwargs
+from display_compat import macos_window_compat_kwargs, effective_scale, wait_for_continue
 
 from psychopy import visual, event, core, gui
 
@@ -129,7 +129,10 @@ def draw_instruction_visuals(win, categories, seq_type, scale_factor, y_offset=0
 def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
               writer, timing_monitor, abort_flag_path=None, seq_type=None, cat_order=None,
               scale_size=None):
-    sf = _scale(scale_size if scale_size is not None else win.size)
+    if scale_size is None:
+        sf = _scale(win.size)
+    else:
+        sf = min(_scale(win.size), _scale(scale_size))
     circ_r   = int(45 * sf)
     stim_h   = int(40 * sf)
     shape_sz = int(35 * sf)
@@ -149,8 +152,8 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
         draw_instruction_visuals(win, cat_order, seq_type, sf, y_offset=-250)
     win.flip()
     while True:
-        keys = event.waitKeys()
-        if 'escape' not in keys:
+        action_key = wait_for_continue(win, allow_escape=True)
+        if action_key != 'escape':
             break
         action = show_pause_menu(win, title='Trail Making Test', scale_factor=sf)
         if action == 'resume':
@@ -363,7 +366,7 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
         text=f'Trial Complete!\n\nTime: {comp_t:.2f}s  |  Errors: {total_errors}\n\nPress any key.',
         height=int(50*sf))
     fb.draw(); win.flip()
-    event.waitKeys()
+    wait_for_continue(win, allow_escape=False)
     return {
         'status': 'completed',
         'total_errors': total_errors,
@@ -418,8 +421,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                         units='pix', allowGUI=False,
                         **macos_window_compat_kwargs())
     win.mouseVisible = True
-    # Use configured resolution for UI scaling (more stable on macOS HiDPI).
-    sf  = _scale((screen_w, screen_h))
+    sf  = effective_scale(win.size, screen_w, screen_h)
     ww  = int(800 * sf)
     th  = int(50 * sf)
     timing = FrameTimingMonitor(win)
@@ -438,8 +440,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
             height=th, wrapWidth=ww).draw()
         win.flip()
         while True:
-            keys = event.waitKeys()
-            if 'escape' not in keys:
+            action_key = wait_for_continue(win, allow_escape=True)
+            if action_key != 'escape':
                 break
             action = show_pause_menu(win, title='Trail Making Test', scale_factor=sf)
             if action == 'resume':
@@ -490,7 +492,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                     wrapWidth=ww,
                 ).draw()
                 win.flip()
-                event.waitKeys()
+                wait_for_continue(win, allow_escape=False)
                 break
 
             visual.TextStim(
@@ -505,7 +507,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                 wrapWidth=ww,
             ).draw()
             win.flip()
-            event.waitKeys()
+            wait_for_continue(win, allow_escape=False)
 
         # ── Build trial list ────────────────────────────────────────────────
         trials = []
@@ -669,7 +671,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
         visual.TextStim(win,
             text=f"{end_text}\n\nTiming Quality Score: {run_summary['run_quality_score']:.2f}",
             height=th, wrapWidth=ww).draw()
-        win.flip(); event.waitKeys()
+        win.flip()
+        wait_for_continue(win, allow_escape=False)
 
     finally:
         try:

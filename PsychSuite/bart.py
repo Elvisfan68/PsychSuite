@@ -13,7 +13,7 @@ from pause_menu import show_pause_menu, request_suite_abort
 from timing_quality import FrameTimingMonitor, timing_row_fields, timing_run_fields
 from randomization import derive_seed
 from metrics_writer import write_derived_metrics
-from display_compat import macos_window_compat_kwargs
+from display_compat import macos_window_compat_kwargs, effective_scale
 
 from psychopy import visual, event, core, gui
 
@@ -100,9 +100,10 @@ class BART:
     # ── Scaling ──────────────────────────────────────────────────────────────
 
     def _calc_scaling(self):
-        # Use configured resolution for scaling to avoid macOS HiDPI fullscreen oversizing.
-        sw, sh = self.cfg_screen_w, self.cfg_screen_h
-        sf = min(sw / 1920.0, sh / 1080.0) * 1.5
+        base = effective_scale(self.win.size, self.cfg_screen_w, self.cfg_screen_h)
+        # Keep legacy size on non-macOS, but avoid oversizing on macOS external displays.
+        factor = 1.0 if sys.platform == "darwin" else 1.5
+        sf = base * factor
         self.ts = {k: int(v * sf) for k, v in
                    {'large':35,'medium':28,'normal':22,'small':18,'button':24,'huge':50}.items()}
         self.sf = sf
