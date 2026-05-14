@@ -447,10 +447,12 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
 
         # Mandatory short competency practice (kept separate from optional familiarization)
         while True:
-            practice_seq = [1, 2, 3, 4]
+            practice_seq = [1, 'triangle', 'A', 2, 'square', 'B', 3, 'pentagon', 'C']
             practice_instruction = (
                 "Mandatory TMT Practice\n\n"
-                "Connect 1 -> 2 -> 3 -> 4.\n"
+                "This practice uses all 3 categories.\n"
+                "Connect the mixed sequence in this exact order:\n"
+                "1 -> triangle -> A -> 2 -> square -> B -> 3 -> pentagon -> C\n\n"
                 "Take as much time as you need on this practice part.\n\n"
                 f"Pass criteria: errors <= {practice_max_errors}\n\n"
                 "Press any key to start."
