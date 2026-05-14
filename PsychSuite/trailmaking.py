@@ -28,6 +28,10 @@ SHEET_NAME = 'TMT'
 def _scale(win_size):
     return min(win_size[0] / 1920, win_size[1] / 1080)
 
+def _tmt_stimulus_boost(win_size):
+    """Increase TMT stimulus size on very high-resolution displays (e.g., 4K)."""
+    return 1.4 if max(win_size) >= 3000 else 1.0
+
 def check_overlap(new_pos, existing, radius):
     for (x, y) in existing:
         if np.sqrt((new_pos[0]-x)**2 + (new_pos[1]-y)**2) < radius * 2:
@@ -92,13 +96,13 @@ def create_sequence(categories, seq_type, n=6):
             seq.append(pools[cat][idx])
     return seq
 
-def draw_instruction_visuals(win, categories, seq_type, scale_factor, y_offset=0):
+def draw_instruction_visuals(win, categories, seq_type, scale_factor, y_offset=0, stim_boost=1.0):
     n = 6
     y_start = (200 + y_offset) * scale_factor
-    row_gap  = 80 * scale_factor
-    dot_r    = 25 * scale_factor
-    th       = 32 * scale_factor
-    ss       = 22 * scale_factor
+    row_gap  = 80 * scale_factor * stim_boost
+    dot_r    = 25 * scale_factor * stim_boost
+    th       = 32 * scale_factor * stim_boost
+    ss       = 22 * scale_factor * stim_boost
     nums    = list(range(1, n+1))
     letters = ['A','B','C','D','E','F']
     shapes  = get_shape_names(n)
@@ -110,7 +114,7 @@ def draw_instruction_visuals(win, categories, seq_type, scale_factor, y_offset=0
         y = y_start - idx * row_gap
         x0 = -180 * scale_factor
         for i, val in enumerate(pools[cat]):
-            x = x0 + i * 65 * scale_factor
+            x = x0 + i * 65 * scale_factor * stim_boost
             if cat == 'shapes':
                 create_shape(win, val, (x, y), size=ss, scale_factor=1.0).draw()
             else:
@@ -150,7 +154,7 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
                                  color='white')
     instr_stim.draw()
     if is_mixed:
-        draw_instruction_visuals(win, cat_order, seq_type, sf, y_offset=-250)
+        draw_instruction_visuals(win, cat_order, seq_type, sf, y_offset=-250, stim_boost=stim_boost)
     win.flip()
     while True:
         action_key = wait_for_continue(win, allow_escape=True)
@@ -160,7 +164,7 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
         if action == 'resume':
             instr_stim.draw()
             if is_mixed:
-                draw_instruction_visuals(win, cat_order, seq_type, sf, y_offset=-250)
+                draw_instruction_visuals(win, cat_order, seq_type, sf, y_offset=-250, stim_boost=stim_boost)
             win.flip()
             continue
         if action == 'quit_battery':
