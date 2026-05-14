@@ -132,6 +132,7 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
     if scale_size is None:
         sf = _scale(win.size)
     else:
+        # Clamp trial scaling by both actual and configured scales.
         sf = min(_scale(win.size), _scale(scale_size))
     circ_r   = int(45 * sf)
     stim_h   = int(40 * sf)
@@ -421,7 +422,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                         units='pix', allowGUI=False,
                         **macos_window_compat_kwargs())
     win.mouseVisible = True
-    sf  = effective_scale(win.size, screen_w, screen_h)
+    sf  = effective_scale(win, screen_w, screen_h)
     ww  = int(800 * sf)
     th  = int(50 * sf)
     timing = FrameTimingMonitor(win)

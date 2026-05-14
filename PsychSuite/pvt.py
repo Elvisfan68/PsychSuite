@@ -70,7 +70,7 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
         **macos_window_compat_kwargs(),
     )
     win.mouseVisible = True
-    sf = effective_scale(win.size, screen_w, screen_h)
+    sf = effective_scale(win, screen_w, screen_h)
     abort_flag_path = config.get('abort_flag_path')
     timing = FrameTimingMonitor(win)
 
