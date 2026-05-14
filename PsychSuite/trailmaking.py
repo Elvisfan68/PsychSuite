@@ -28,9 +28,9 @@ SHEET_NAME = 'TMT'
 def _scale(win_size):
     return min(win_size[0] / 1920, win_size[1] / 1080)
 
-def _tmt_stimulus_boost(win_size):
-    """Increase TMT stimulus size on very high-resolution displays (e.g., 4K)."""
-    return 1.4 if max(win_size) >= 3000 else 1.0
+def _tmt_stimulus_boost():
+    """Increase TMT stimulus size on macOS where scaling can make targets look small."""
+    return 1.4 if sys.platform == 'darwin' else 1.0
 
 def check_overlap(new_pos, existing, radius):
     for (x, y) in existing:
@@ -138,9 +138,10 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
     else:
         # Clamp trial scaling by both actual and configured scales.
         sf = min(_scale(win.size), _scale(scale_size))
-    circ_r   = int(45 * sf)
-    stim_h   = int(40 * sf)
-    shape_sz = int(35 * sf)
+    stim_boost = _tmt_stimulus_boost()
+    circ_r   = int(45 * sf * stim_boost)
+    stim_h   = int(40 * sf * stim_boost)
+    shape_sz = int(35 * sf * stim_boost)
     lw       = max(1, int(3 * sf))
     instr_h  = int(50 * sf)
     wrap_w   = int(1200 * sf)
