@@ -127,8 +127,9 @@ def draw_instruction_visuals(win, categories, seq_type, scale_factor, y_offset=0
 # ---------------------------------------------------------------------------
 
 def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
-              writer, timing_monitor, abort_flag_path=None, seq_type=None, cat_order=None):
-    sf = _scale(win.size)
+              writer, timing_monitor, abort_flag_path=None, seq_type=None, cat_order=None,
+              scale_size=None):
+    sf = _scale(scale_size if scale_size is not None else win.size)
     circ_r   = int(45 * sf)
     stim_h   = int(40 * sf)
     shape_sz = int(35 * sf)
@@ -417,7 +418,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                         units='pix', allowGUI=False,
                         **macos_window_compat_kwargs())
     win.mouseVisible = True
-    sf  = _scale(win.size)
+    # Use configured resolution for UI scaling (more stable on macOS HiDPI).
+    sf  = _scale((screen_w, screen_h))
     ww  = int(800 * sf)
     th  = int(50 * sf)
     timing = FrameTimingMonitor(win)
@@ -474,6 +476,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                 abort_flag_path=abort_flag_path,
                 seq_type=None,
                 cat_order=None,
+                scale_size=(screen_w, screen_h),
             )
             if p['status'] == 'quit_battery':
                 return
@@ -596,7 +599,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                            timing_monitor=timing,
                            abort_flag_path=abort_flag_path,
                            seq_type=seq_type if is_mixed else None,
-                           cat_order=cat_order if is_mixed else None)
+                           cat_order=cat_order if is_mixed else None,
+                           scale_size=(screen_w, screen_h))
             if trial_result['status'] == 'completed':
                 if trial_name.startswith('Experimental_'):
                     exp_trial_count += 1

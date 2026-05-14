@@ -45,6 +45,8 @@ class BART:
         screen_w = int(config.get('screen_width', 1920))
         screen_h = int(config.get('screen_height', 1080))
         fullscr  = bool(config.get('fullscreen', True))
+        self.cfg_screen_w = screen_w
+        self.cfg_screen_h = screen_h
 
         # Optional pygame sounds (pygame is not a hard dependency — see requirements.txt).
         self.pump_snd = self.pop_snd = self.collect_snd = None
@@ -98,7 +100,8 @@ class BART:
     # ── Scaling ──────────────────────────────────────────────────────────────
 
     def _calc_scaling(self):
-        sw, sh = self.win.size[0], self.win.size[1]
+        # Use configured resolution for scaling to avoid macOS HiDPI fullscreen oversizing.
+        sw, sh = self.cfg_screen_w, self.cfg_screen_h
         sf = min(sw / 1920.0, sh / 1080.0) * 1.5
         self.ts = {k: int(v * sf) for k, v in
                    {'large':35,'medium':28,'normal':22,'small':18,'button':24,'huge':50}.items()}
