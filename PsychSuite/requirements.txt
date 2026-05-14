@@ -1,0 +1,13 @@
+# --- Python version (important) ---
+# PsychoPy on PyPI declares: Requires-Python <3.12,>=3.9
+# Use 64-bit Python 3.10 or 3.11 for reliable installs (not 3.12+ or 3.14).
+# Example: py -3.11 -m venv .venv  then  .venv\Scripts\activate
+
+# 2025.1+ no longer depends on the removed PyPI package "pypi-search" (older PsychoPy fails pip).
+psychopy>=2025.1.0,<2027.0.0
+
+openpyxl>=3.1.0
+numpy>=1.23.0
+
+# pygame: optional — BART sound effects only. On Windows with Python 3.11:
+#   pip install pygame

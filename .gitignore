@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Experiment outputs
+PsychSuite/Data/
+PVT Data/
+Trailmaking Data/
+Bart Data/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
