@@ -343,7 +343,7 @@ class PsychLauncher(tk.Tk):
         self.t_numbers = tk.BooleanVar(value=True)
         self.t_letters = tk.BooleanVar(value=True)
         self.t_shapes  = tk.BooleanVar(value=True)
-        self.t_fam     = tk.BooleanVar(value=True)
+        self.t_fam     = tk.BooleanVar(value=False)
         self.t_legacy_mixed = tk.BooleanVar(value=False)
 
         rows = [

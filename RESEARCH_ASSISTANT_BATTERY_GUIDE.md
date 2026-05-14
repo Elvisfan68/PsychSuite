@@ -22,6 +22,7 @@ Key system behavior:
 - You can pause tasks with `ESC` (pause menu).
 - Optional self-report can be collected at beginning/end.
 - Deterministic replay mode is available using a seed.
+- On macOS, `master.py` attempts to set display mode to `3840x2160` before launcher start.
 
 ---
 
@@ -39,6 +40,10 @@ py -3.11 -m venv .venv
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install -r requirements.txt
 ```
+
+For macOS stations (one-time):
+- Install `displayplacer` so startup display mode automation can run:
+  - `brew install displayplacer`
 
 Run launcher:
 
@@ -76,6 +81,7 @@ The launcher controls:
 ### Parameters tabs
 - BART, PVT, TMT parameters are editable before run
 - TMT includes `Use legacy mixed order set`
+- `Run familiarization trials` is **OFF by default** for TMT
 
 ### Run controls
 - Run all in configured order
@@ -159,7 +165,7 @@ Flow:
 5. Completion summary + derived metrics
 
 Practice gate (mandatory):
-- Short sequence (`1 -> 2 -> 3 -> 4`)
+- Mixed-category sequence (`1 -> triangle -> A -> 2 -> square -> B -> 3 -> pentagon -> C`)
 - Pass criterion: errors <= configured threshold (default `1`)
 - Unlimited retries
 - Reminder that participant can take as much time as needed
@@ -168,6 +174,7 @@ Familiarization:
 - Controlled by `Run familiarization trials` checkbox
 - Still optional and preserved
 - Runs after competency gate, before experimental trials
+- Default is OFF unless the RA enables it
 
 Mixed-order mode:
 - Default/new mode: all unique category permutations x ascending/descending
@@ -177,6 +184,7 @@ Enhanced TMT error modeling:
 - near-miss count
 - repeated same wrong target
 - correction latency
+- On macOS, TMT visual targets are intentionally rendered larger for readability
 
 Derived metrics written at end:
 - experimental trials completed
@@ -341,6 +349,10 @@ If mouse appears missing:
 
 If task ended early unexpectedly:
 - check `_SessionLog` and `Completion_Status` in `Derived_Metrics`
+
+If macOS startup prints display-mode warning:
+- Battery can still run; this means requested display mode was not applied
+- Verify `displayplacer` installation and test modes with `displayplacer list`
 
 ---
 

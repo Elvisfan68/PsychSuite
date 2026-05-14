@@ -405,7 +405,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
     use_numbers    = config.get('tmt_use_numbers', True)
     use_letters    = config.get('tmt_use_letters', True)
     use_shapes     = config.get('tmt_use_shapes', True)
-    run_fam        = config.get('tmt_run_familiarization', True)
+    run_fam        = config.get('tmt_run_familiarization', False)
     use_legacy_mixed_order = config.get('tmt_use_legacy_mixed_order', False)
     practice_max_errors = int(config.get('tmt_practice_max_errors', 1))
     master_seed    = int(config.get('master_seed', random.SystemRandom().randint(1, 2**31 - 2)))
@@ -704,7 +704,7 @@ def _standalone_config():
         'screen_width': 1920, 'screen_height': 1080, 'fullscreen': True,
         'tmt_elements_per_category': 6,
         'tmt_use_numbers': True, 'tmt_use_letters': True, 'tmt_use_shapes': True,
-        'tmt_run_familiarization': True,
+        'tmt_run_familiarization': False,
         'tmt_use_legacy_mixed_order': False,
         'excel_path': make_excel_path(data_dir, info['Participant ID'], info['Treatment']),
     }
