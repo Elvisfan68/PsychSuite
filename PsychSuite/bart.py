@@ -13,6 +13,7 @@ from pause_menu import show_pause_menu, request_suite_abort
 from timing_quality import FrameTimingMonitor, timing_row_fields, timing_run_fields
 from randomization import derive_seed
 from metrics_writer import write_derived_metrics
+from display_compat import macos_window_compat_kwargs
 
 from psychopy import visual, event, core, gui
 
@@ -64,13 +65,17 @@ class BART:
         self.win = visual.Window(
             size=[screen_w, screen_h], fullscr=fullscr, screen=0,
             winType='pyglet', allowGUI=False, monitor='testMonitor',
-            color=[-1,-1,-1], colorSpace='rgb', units='pix'
+            color=[-1,-1,-1], colorSpace='rgb', units='pix',
+            **macos_window_compat_kwargs()
         )
         self.win.mouseVisible = True
         self._calc_scaling()
         self.timing = FrameTimingMonitor(self.win)
         self.writer.log_session_event(
             f"SEED task=BART replay={self.replay_exact} master={self.master_seed} task={self.task_seed}"
+        )
+        self.writer.log_session_event(
+            f"DISPLAY task=BART requested={screen_w}x{screen_h} fullscr={fullscr} actual={self.win.size[0]}x{self.win.size[1]} useRetina={getattr(self.win, 'useRetina', 'na')}"
         )
 
         # Generate break points and top-off assignment

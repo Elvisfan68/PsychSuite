@@ -15,6 +15,7 @@ from pause_menu import show_pause_menu, request_suite_abort
 from timing_quality import FrameTimingMonitor, timing_row_fields, timing_run_fields
 from randomization import derive_seed
 from metrics_writer import write_derived_metrics
+from display_compat import macos_window_compat_kwargs
 
 from psychopy import visual, event, core, gui
 
@@ -413,7 +414,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
 
     win = visual.Window(size=[screen_w, screen_h], fullscr=fullscr,
                         monitor='testMonitor', color='black',
-                        units='pix', allowGUI=False)
+                        units='pix', allowGUI=False,
+                        **macos_window_compat_kwargs())
     win.mouseVisible = True
     sf  = _scale(win.size)
     ww  = int(800 * sf)
@@ -423,6 +425,9 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
     try:
         writer.log_session_event(
             f"SEED task=TMT replay={replay_exact} master={master_seed} task={task_seed}"
+        )
+        writer.log_session_event(
+            f"DISPLAY task=TMT requested={screen_w}x{screen_h} fullscr={fullscr} actual={win.size[0]}x{win.size[1]} useRetina={getattr(win, 'useRetina', 'na')}"
         )
         writer.log_session_event(f"SEED task=TMT block=TRIAL_PLAN seed={plan_seed}")
         # Welcome
