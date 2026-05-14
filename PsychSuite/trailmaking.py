@@ -15,6 +15,7 @@ from pause_menu import show_pause_menu, request_suite_abort
 from timing_quality import FrameTimingMonitor, timing_row_fields, timing_run_fields
 from randomization import derive_seed
 from metrics_writer import write_derived_metrics
+from display_compat import macos_window_compat_kwargs, effective_scale, wait_for_continue
 
 from psychopy import visual, event, core, gui
 
@@ -130,12 +131,16 @@ def draw_instruction_visuals(win, categories, seq_type, scale_factor, y_offset=0
 # ---------------------------------------------------------------------------
 
 def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
-              writer, timing_monitor, abort_flag_path=None, seq_type=None, cat_order=None):
-    sf = _scale(win.size)
-    stim_boost = _tmt_stimulus_boost(win.size)
-    circ_r   = int(45 * sf * stim_boost)
-    stim_h   = int(40 * sf * stim_boost)
-    shape_sz = int(35 * sf * stim_boost)
+              writer, timing_monitor, abort_flag_path=None, seq_type=None, cat_order=None,
+              scale_size=None):
+    if scale_size is None:
+        sf = _scale(win.size)
+    else:
+        # Clamp trial scaling by both actual and configured scales.
+        sf = min(_scale(win.size), _scale(scale_size))
+    circ_r   = int(45 * sf)
+    stim_h   = int(40 * sf)
+    shape_sz = int(35 * sf)
     lw       = max(1, int(3 * sf))
     instr_h  = int(50 * sf)
     wrap_w   = int(1200 * sf)
@@ -152,8 +157,8 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
         draw_instruction_visuals(win, cat_order, seq_type, sf, y_offset=-250, stim_boost=stim_boost)
     win.flip()
     while True:
-        keys = event.waitKeys()
-        if 'escape' not in keys:
+        action_key = wait_for_continue(win, allow_escape=True)
+        if action_key != 'escape':
             break
         action = show_pause_menu(win, title='Trail Making Test', scale_factor=sf)
         if action == 'resume':
@@ -366,7 +371,7 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
         text=f'Trial Complete!\n\nTime: {comp_t:.2f}s  |  Errors: {total_errors}\n\nPress any key.',
         height=int(50*sf))
     fb.draw(); win.flip()
-    event.waitKeys()
+    wait_for_continue(win, allow_escape=False)
     return {
         'status': 'completed',
         'total_errors': total_errors,
@@ -418,9 +423,10 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
 
     win = visual.Window(size=[screen_w, screen_h], fullscr=fullscr,
                         monitor='testMonitor', color='black',
-                        units='pix', allowGUI=False)
+                        units='pix', allowGUI=False,
+                        **macos_window_compat_kwargs())
     win.mouseVisible = True
-    sf  = _scale(win.size)
+    sf  = effective_scale(win, screen_w, screen_h)
     ww  = int(800 * sf)
     th  = int(50 * sf)
     timing = FrameTimingMonitor(win)
@@ -429,6 +435,9 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
         writer.log_session_event(
             f"SEED task=TMT replay={replay_exact} master={master_seed} task={task_seed}"
         )
+        writer.log_session_event(
+            f"DISPLAY task=TMT requested={screen_w}x{screen_h} fullscr={fullscr} actual={win.size[0]}x{win.size[1]} useRetina={getattr(win, 'useRetina', 'na')}"
+        )
         writer.log_session_event(f"SEED task=TMT block=TRIAL_PLAN seed={plan_seed}")
         # Welcome
         visual.TextStim(win,
@@ -436,8 +445,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
             height=th, wrapWidth=ww).draw()
         win.flip()
         while True:
-            keys = event.waitKeys()
-            if 'escape' not in keys:
+            action_key = wait_for_continue(win, allow_escape=True)
+            if action_key != 'escape':
                 break
             action = show_pause_menu(win, title='Trail Making Test', scale_factor=sf)
             if action == 'resume':
@@ -474,6 +483,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                 abort_flag_path=abort_flag_path,
                 seq_type=None,
                 cat_order=None,
+                scale_size=(screen_w, screen_h),
             )
             if p['status'] == 'quit_battery':
                 return
@@ -487,7 +497,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                     wrapWidth=ww,
                 ).draw()
                 win.flip()
-                event.waitKeys()
+                wait_for_continue(win, allow_escape=False)
                 break
 
             visual.TextStim(
@@ -502,7 +512,7 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                 wrapWidth=ww,
             ).draw()
             win.flip()
-            event.waitKeys()
+            wait_for_continue(win, allow_escape=False)
 
         # ── Build trial list ────────────────────────────────────────────────
         trials = []
@@ -596,7 +606,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
                            timing_monitor=timing,
                            abort_flag_path=abort_flag_path,
                            seq_type=seq_type if is_mixed else None,
-                           cat_order=cat_order if is_mixed else None)
+                           cat_order=cat_order if is_mixed else None,
+                           scale_size=(screen_w, screen_h))
             if trial_result['status'] == 'completed':
                 if trial_name.startswith('Experimental_'):
                     exp_trial_count += 1
@@ -665,7 +676,8 @@ def run_tmt(config: dict, writer: IncrementalExcelWriter):
         visual.TextStim(win,
             text=f"{end_text}\n\nTiming Quality Score: {run_summary['run_quality_score']:.2f}",
             height=th, wrapWidth=ww).draw()
-        win.flip(); event.waitKeys()
+        win.flip()
+        wait_for_continue(win, allow_escape=False)
 
     finally:
         try:

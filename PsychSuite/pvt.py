@@ -18,6 +18,7 @@ from pause_menu import show_pause_menu, request_suite_abort
 from timing_quality import FrameTimingMonitor, timing_row_fields, timing_run_fields
 from randomization import derive_seed
 from metrics_writer import write_derived_metrics
+from display_compat import macos_window_compat_kwargs, effective_scale, wait_for_continue
 
 from psychopy import visual, event, core, gui
 
@@ -65,10 +66,11 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
         monitor='testMonitor',
         units='pix',
         allowGUI=False,
-        color='black'
+        color='black',
+        **macos_window_compat_kwargs(),
     )
     win.mouseVisible = True
-    sf = _scale(win.size)
+    sf = effective_scale(win, screen_w, screen_h)
     abort_flag_path = config.get('abort_flag_path')
     timing = FrameTimingMonitor(win)
 
@@ -81,6 +83,9 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
     try:
         writer.log_session_event(
             f"SEED task=PVT replay={replay_exact} master={master_seed} task={task_seed}"
+        )
+        writer.log_session_event(
+            f"DISPLAY task=PVT requested={screen_w}x{screen_h} fullscr={fullscr} actual={win.size[0]}x{win.size[1]} useRetina={getattr(win, 'useRetina', 'na')}"
         )
         writer.log_session_event(f"SEED task=PVT block=PRACTICE seed={practice_seed}")
         writer.log_session_event(f"SEED task=PVT block=MAIN seed={main_seed}")
@@ -101,7 +106,7 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
             )
             msg.draw()
             win.flip()
-            event.waitKeys()
+            wait_for_continue(win, allow_escape=False)
 
         def _pause_or_exit():
             nonlocal paused_total
@@ -135,8 +140,8 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
                     "Press SPACEBAR to begin practice."
                 )
                 msg.draw(); win.flip()
-                keys = event.waitKeys(keyList=['space', 'escape'])
-                if 'escape' in keys:
+                action_key = wait_for_continue(win, allow_escape=True)
+                if action_key == 'escape':
                     if _pause_or_exit() == 'quit':
                         return False
                     continue
@@ -207,7 +212,7 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
                         "Press SPACEBAR to continue."
                     )
                     msg.draw(); win.flip()
-                    event.waitKeys(keyList=['space'])
+                    wait_for_continue(win, allow_escape=False)
                     return True
 
                 msg.setText(
@@ -217,8 +222,8 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
                     "Press SPACEBAR to retry."
                 )
                 msg.draw(); win.flip()
-                keys = event.waitKeys(keyList=['space', 'escape'])
-                if 'escape' in keys and _pause_or_exit() == 'quit':
+                action_key = wait_for_continue(win, allow_escape=True)
+                if action_key == 'escape' and _pause_or_exit() == 'quit':
                     return False
 
         # ── Instructions ──────────────────────────────────────────────────
@@ -235,10 +240,10 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
         win.flip()
 
         while True:
-            keys = event.waitKeys(keyList=['space', 'escape'])
-            if 'space' in keys:
+            action_key = wait_for_continue(win, allow_escape=True)
+            if action_key == 'continue':
                 break
-            if 'escape' in keys:
+            if action_key == 'escape':
                 if _pause_or_exit() == 'quit':
                     return
 
@@ -463,7 +468,7 @@ def run_pvt(config: dict, writer: IncrementalExcelWriter):
                 f"Press any key to continue."
             )
             msg.draw(); win.flip()
-            event.waitKeys()
+            wait_for_continue(win, allow_escape=False)
 
     finally:
         try:

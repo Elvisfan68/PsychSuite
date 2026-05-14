@@ -13,6 +13,7 @@ from pause_menu import show_pause_menu, request_suite_abort
 from timing_quality import FrameTimingMonitor, timing_row_fields, timing_run_fields
 from randomization import derive_seed
 from metrics_writer import write_derived_metrics
+from display_compat import macos_window_compat_kwargs, effective_scale, wait_for_continue
 
 from psychopy import visual, event, core, gui
 
@@ -44,6 +45,8 @@ class BART:
         screen_w = int(config.get('screen_width', 1920))
         screen_h = int(config.get('screen_height', 1080))
         fullscr  = bool(config.get('fullscreen', True))
+        self.cfg_screen_w = screen_w
+        self.cfg_screen_h = screen_h
 
         # Optional pygame sounds (pygame is not a hard dependency — see requirements.txt).
         self.pump_snd = self.pop_snd = self.collect_snd = None
@@ -64,13 +67,17 @@ class BART:
         self.win = visual.Window(
             size=[screen_w, screen_h], fullscr=fullscr, screen=0,
             winType='pyglet', allowGUI=False, monitor='testMonitor',
-            color=[-1,-1,-1], colorSpace='rgb', units='pix'
+            color=[-1,-1,-1], colorSpace='rgb', units='pix',
+            **macos_window_compat_kwargs()
         )
         self.win.mouseVisible = True
         self._calc_scaling()
         self.timing = FrameTimingMonitor(self.win)
         self.writer.log_session_event(
             f"SEED task=BART replay={self.replay_exact} master={self.master_seed} task={self.task_seed}"
+        )
+        self.writer.log_session_event(
+            f"DISPLAY task=BART requested={screen_w}x{screen_h} fullscr={fullscr} actual={self.win.size[0]}x{self.win.size[1]} useRetina={getattr(self.win, 'useRetina', 'na')}"
         )
 
         # Generate break points and top-off assignment
@@ -93,8 +100,10 @@ class BART:
     # ── Scaling ──────────────────────────────────────────────────────────────
 
     def _calc_scaling(self):
-        sw, sh = self.win.size[0], self.win.size[1]
-        sf = min(sw / 1920.0, sh / 1080.0) * 1.5
+        base = effective_scale(self.win, self.cfg_screen_w, self.cfg_screen_h)
+        # Keep legacy size on non-macOS, but avoid oversizing on macOS external displays.
+        factor = 1.0 if sys.platform == "darwin" else 1.5
+        sf = base * factor
         self.ts = {k: int(v * sf) for k, v in
                    {'large':35,'medium':28,'normal':22,'small':18,'button':24,'huge':50}.items()}
         self.sf = sf
@@ -583,6 +592,16 @@ class BART:
 
     # ── Instructions ─────────────────────────────────────────────────────────
 
+    def _wait_for_continue(self, allow_escape=True):
+        action_key = wait_for_continue(self.win, allow_escape=allow_escape)
+        if action_key == 'escape' and allow_escape:
+            action, _ = self._pause_menu()
+            if action == 'resume':
+                return 'resume'
+            self._end_early(action)
+            return 'quit'
+        return 'continue'
+
     def _show_instructions(self):
         pages = [
             "Balloon Analogue Risk Task (BART)\n\nPump up balloons to earn money.\nEach pump earns you 1 cent.\n\nPress SPACE to continue...",
@@ -593,12 +612,10 @@ class BART:
                                height=self.ts['large'], wrapWidth=1400)
         for page in pages:
             disp.text = page; disp.draw(); self.win.flip()
-            k = event.waitKeys(keyList=['space','escape'])
-            if k and 'escape' in k:
-                action, _ = self._pause_menu()
-                if action == 'resume':
-                    continue
-                self._end_early(action)
+            wait_action = self._wait_for_continue(allow_escape=True)
+            if wait_action == 'resume':
+                continue
+            if wait_action == 'quit':
                 return False
         return True
 
@@ -624,12 +641,10 @@ class BART:
                 wrapWidth=1400,
             )
             txt.draw(); self.win.flip()
-            keys = event.waitKeys(keyList=['space', 'escape'])
-            if 'escape' in keys:
-                action, _ = self._pause_menu()
-                if action == 'resume':
-                    continue
-                self._end_early(action)
+            wait_action = self._wait_for_continue(allow_escape=True)
+            if wait_action == 'resume':
+                continue
+            if wait_action == 'quit':
                 return False
 
             self.in_competency_gate = True
@@ -692,7 +707,7 @@ class BART:
                     pos=[0, 0], color='white', height=self.ts['large'], wrapWidth=1400
                 )
                 ok.draw(); self.win.flip()
-                event.waitKeys(keyList=['space'])
+                self._wait_for_continue(allow_escape=False)
                 return True
 
             if failed:
@@ -707,12 +722,10 @@ class BART:
                     pos=[0, 0], color='white', height=self.ts['large'], wrapWidth=1400
                 )
                 retry.draw(); self.win.flip()
-                keys = event.waitKeys(keyList=['space', 'escape'])
-                if 'escape' in keys:
-                    action, _ = self._pause_menu()
-                    if action == 'resume':
-                        continue
-                    self._end_early(action)
+                wait_action = self._wait_for_continue(allow_escape=True)
+                if wait_action == 'resume':
+                    continue
+                if wait_action == 'quit':
                     return False
 
     def _pause_menu(self):
@@ -742,7 +755,7 @@ class BART:
         )
         disp.draw()
         self.win.flip()
-        event.waitKeys(keyList=['space'])
+        self._wait_for_continue(allow_escape=False)
         self._quit()
 
     def _write_derived_metrics(self, completion_status='COMPLETED'):
@@ -819,7 +832,7 @@ class BART:
         disp = visual.TextStim(self.win, text=results, pos=[0,0], color='white',
                                height=self.ts['large'], wrapWidth=1400)
         disp.draw(); self.win.flip()
-        event.waitKeys(keyList=['space'])
+        self._wait_for_continue(allow_escape=False)
         self.win.close()
 
     def _quit(self):
