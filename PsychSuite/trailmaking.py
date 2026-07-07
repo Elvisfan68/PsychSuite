@@ -347,7 +347,7 @@ def run_trial(win, trial_name, sequence, instructions_text, pid, treatment,
                             if wrong_clicks_by_index[i] > 1:
                                 repeated_same_wrong_target += 1
                             if first_wrong_total_time_ms is None:
-                                first_wrong_total_time_ms = trial_now() * 1000
+                                first_wrong_total_time_ms = (trial_now() - trial_start) * 1000
 
                             # Near-miss: clicked wrong target is spatially close to current correct target.
                             dx = positions[i][0] - positions[target_idx][0]
